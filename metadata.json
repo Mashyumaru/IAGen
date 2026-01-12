@@ -1,0 +1,5 @@
+{
+  "name": "PokéGen AI Gacha",
+  "description": "A client-side Pokémon gacha game powered by Gemini AI. Pull, collect, and chat with your unique Pokémon companions.",
+  "requestFramePermissions": []
+}
