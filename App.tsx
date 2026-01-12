@@ -70,17 +70,36 @@ const App: React.FC = () => {
     const value = getResellValue(pokemon);
     setCredits(prev => prev + value);
     setInventory(prev => prev.filter(p => p.id !== pokemon.id));
-    setSelectedPokemon(null);
+    // If there are other duplicates, switch to one of them, otherwise close
+    if (selectedPokemon && selectedPokemon.id === pokemon.id) {
+       const siblings = inventory.filter(p => 
+          p.pokedexId === pokemon.pokedexId && 
+          p.isShiny === pokemon.isShiny && 
+          p.id !== pokemon.id
+       );
+       if (siblings.length > 0) {
+          setSelectedPokemon(siblings[0]);
+       } else {
+          setSelectedPokemon(null);
+       }
+    }
   };
 
   const handleReleaseAll = () => {
-    // Release all visible pokemon
-    const visibleIds = new Set(displayedInventory.map(p => p.id));
+    // Release all visible pokemon (including duplicates inside groups)
+    // We need to match the filter logic
     
-    const totalValue = displayedInventory.reduce((acc, p) => acc + getResellValue(p), 0);
+    // Re-calculate the items being released
+    const filtered = inventory.filter(p => 
+      filterRarity === 'ALL' ? true : p.rarity === filterRarity
+    );
+    
+    // We don't use displayedInventory here because it's grouped. We want the raw list.
+    const totalValue = filtered.reduce((acc, p) => acc + getResellValue(p), 0);
+    const releaseIds = new Set(filtered.map(p => p.id));
     
     setCredits(prev => prev + totalValue);
-    setInventory(prev => prev.filter(p => !visibleIds.has(p.id)));
+    setInventory(prev => prev.filter(p => !releaseIds.has(p.id)));
     setShowReleaseConfirm(false);
   };
 
@@ -97,15 +116,15 @@ const App: React.FC = () => {
     setCredits(prev => prev + 500);
   };
 
-  // Filter & Sort logic
+  // Filter & Sort & Group logic
   const displayedInventory = React.useMemo(() => {
     // 1. Filter
-    const filtered = inventory.filter(p => 
+    let filtered = inventory.filter(p => 
       filterRarity === 'ALL' ? true : p.rarity === filterRarity
     );
 
-    // 2. Sort
-    return filtered.sort((a, b) => {
+    // 2. Sort (Raw list first)
+    filtered = filtered.sort((a, b) => {
       switch (sortOption) {
         case 'newest': return b.obtainedAt - a.obtainedAt;
         case 'oldest': return a.obtainedAt - b.obtainedAt;
@@ -117,9 +136,27 @@ const App: React.FC = () => {
         default: return 0;
       }
     });
+
+    // 3. Group
+    const groups = new Map<string, { representative: Pokemon, count: number }>();
+    
+    filtered.forEach(p => {
+       // Key includes shiny status so shinies don't group with regulars
+       const key = `${p.pokedexId}-${p.isShiny}`;
+       if (!groups.has(key)) {
+          groups.set(key, { representative: p, count: 1 });
+       } else {
+          const entry = groups.get(key)!;
+          entry.count++;
+          // Optionally update representative if we want specific logic (e.g. keep highest stats)
+          // Since we sorted 'filtered' already, the first one encountered is the 'top' sort match.
+       }
+    });
+
+    return Array.from(groups.values());
   }, [inventory, filterRarity, sortOption]);
 
-  const releaseValue = displayedInventory.reduce((acc, p) => acc + getResellValue(p), 0);
+  const releaseValue = displayedInventory.reduce((acc, item) => acc + (getResellValue(item.representative) * item.count), 0);
 
   // Stats Logic
   const collectionScore = React.useMemo(() => calculateCollectionScore(inventory), [inventory]);
@@ -127,6 +164,15 @@ const App: React.FC = () => {
   const rankProgress = trainerRank.nextScore === Infinity 
     ? 100 
     : Math.min(100, Math.max(0, ((collectionScore - trainerRank.minScore) / (trainerRank.nextScore - trainerRank.minScore)) * 100));
+
+  // Get all instances of the selected pokemon (siblings)
+  const selectedSiblings = React.useMemo(() => {
+     if (!selectedPokemon) return [];
+     return inventory.filter(p => 
+        p.pokedexId === selectedPokemon.pokedexId && 
+        p.isShiny === selectedPokemon.isShiny
+     ).sort((a, b) => b.stats.hp + b.stats.attack - (a.stats.hp + a.stats.attack)); // Sort by rough strength
+  }, [selectedPokemon, inventory]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white pb-20">
@@ -254,7 +300,7 @@ const App: React.FC = () => {
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold">Your Collection</h2>
-                  <p className="text-gray-400 text-sm">Total: {inventory.length} / 1025</p>
+                  <p className="text-gray-400 text-sm">Unique: {displayedInventory.length} | Total: {inventory.length}</p>
                 </div>
               </div>
               
@@ -332,11 +378,12 @@ const App: React.FC = () => {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {displayedInventory.map((pokemon) => (
+                {displayedInventory.map((item) => (
                   <PokemonCard 
-                    key={pokemon.id} 
-                    pokemon={pokemon} 
-                    onClick={setSelectedPokemon} 
+                    key={item.representative.id} 
+                    pokemon={item.representative} 
+                    count={item.count}
+                    onClick={(p) => setSelectedPokemon(p)} 
                   />
                 ))}
               </div>
@@ -356,8 +403,10 @@ const App: React.FC = () => {
         {selectedPokemon && (
           <PokemonDetail 
             pokemon={selectedPokemon} 
+            siblings={selectedSiblings}
             onUpdatePokemon={handleUpdatePokemon}
             onRelease={handleReleasePokemon}
+            onSelectSibling={setSelectedPokemon}
           />
         )}
       </Modal>
@@ -421,7 +470,7 @@ const App: React.FC = () => {
             <div className="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
                <AlertTriangle size={32} />
             </div>
-            <h3 className="text-xl font-bold mb-2">Release {displayedInventory.length} Pokémon?</h3>
+            <h3 className="text-xl font-bold mb-2">Release {inventory.filter(p => filterRarity === 'ALL' ? true : p.rarity === filterRarity).length} Pokémon?</h3>
             <p className="text-gray-400 text-sm mb-6">
                You are about to release all currently visible Pokémon to the Professor. 
                This action cannot be undone.

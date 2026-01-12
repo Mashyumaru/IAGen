@@ -2,16 +2,18 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Pokemon, ChatMessage } from '../types';
 import { generatePokemonPersonality, chatWithPokemon } from '../services/geminiService';
 import { getResellValue } from '../services/pokemonService';
-import { Send, Sparkles, Bot, User, Loader2, Trash2, Circle } from 'lucide-react';
+import { Send, Sparkles, Bot, User, Loader2, Trash2, Circle, Layers } from 'lucide-react';
 import { PokemonCard } from './PokemonCard';
 
 interface PokemonDetailProps {
   pokemon: Pokemon;
+  siblings?: Pokemon[];
   onUpdatePokemon: (updated: Pokemon) => void;
   onRelease: (pokemon: Pokemon) => void;
+  onSelectSibling?: (pokemon: Pokemon) => void;
 }
 
-export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onUpdatePokemon, onRelease }) => {
+export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, siblings = [], onUpdatePokemon, onRelease, onSelectSibling }) => {
   const [activeTab, setActiveTab] = useState<'info' | 'chat'>('info');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -73,7 +75,7 @@ export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onUpdateP
 
   return (
     <div className="flex flex-col md:flex-row gap-6 h-full min-h-[500px]">
-      {/* Left Column: Card & Stats */}
+      {/* Left Column: Card & Stats & Siblings */}
       <div className="w-full md:w-1/3 flex flex-col gap-4">
         <div className="flex justify-center">
              <div className="w-64">
@@ -81,6 +83,7 @@ export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onUpdateP
              </div>
         </div>
         
+        {/* Personality Analysis */}
         <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
            <h3 className="text-gray-400 text-xs uppercase tracking-wider font-bold mb-2">AI Personality Analysis</h3>
            {isGeneratingPersonality ? (
@@ -93,6 +96,35 @@ export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onUpdateP
              </p>
            )}
         </div>
+
+        {/* Siblings Selector */}
+        {siblings.length > 1 && (
+           <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+              <h3 className="text-gray-400 text-xs uppercase tracking-wider font-bold mb-3 flex items-center justify-between">
+                 <span>Identical Instances ({siblings.length})</span>
+                 <Layers size={14} />
+              </h3>
+              <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                 {siblings.map((sib, idx) => (
+                    <button
+                       key={sib.id}
+                       onClick={() => onSelectSibling?.(sib)}
+                       className={`
+                          shrink-0 w-12 h-12 rounded-lg border-2 overflow-hidden relative transition-all
+                          ${sib.id === pokemon.id 
+                             ? 'border-white ring-2 ring-blue-500 scale-105' 
+                             : 'border-gray-600 opacity-50 hover:opacity-100 hover:border-gray-400'}
+                       `}
+                    >
+                       <img src={sib.image} alt="" className="w-full h-full object-cover" />
+                       <div className="absolute bottom-0 inset-x-0 bg-black/60 text-[8px] text-center font-mono text-white">
+                          #{idx + 1}
+                       </div>
+                    </button>
+                 ))}
+              </div>
+           </div>
+        )}
       </div>
 
       {/* Right Column: Interaction */}
@@ -142,7 +174,7 @@ export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onUpdateP
                    className="w-full py-3 bg-red-900/20 border border-red-900/50 hover:bg-red-900/40 hover:border-red-500 text-red-400 rounded-xl flex items-center justify-center gap-2 transition-all group"
                  >
                    <Trash2 size={18} className="group-hover:scale-110 transition-transform" />
-                   <span className="font-semibold">Transfer to Professor</span>
+                   <span className="font-semibold">Transfer Instance to Professor</span>
                    <span className="bg-black/30 px-2 py-0.5 rounded-full text-sm flex items-center gap-1 ml-2">
                       +{getResellValue(pokemon.rarity)} <Circle size={10} className="fill-yellow-400 text-yellow-400"/>
                    </span>

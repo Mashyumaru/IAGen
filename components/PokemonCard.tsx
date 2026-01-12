@@ -1,11 +1,12 @@
 import React from 'react';
 import { Pokemon, Rarity } from '../types';
-import { Sparkles, Zap, Shield, Heart, Activity } from 'lucide-react';
+import { Sparkles, Zap, Shield, Heart, Activity, Layers } from 'lucide-react';
 
 interface PokemonCardProps {
   pokemon: Pokemon;
   onClick?: (pokemon: Pokemon) => void;
   showStats?: boolean;
+  count?: number;
 }
 
 const rarityColors = {
@@ -36,7 +37,7 @@ const typeColors: Record<string, string> = {
   fairy: 'bg-pink-300 text-black',
 };
 
-export const PokemonCard: React.FC<PokemonCardProps> = ({ pokemon, onClick, showStats = false }) => {
+export const PokemonCard: React.FC<PokemonCardProps> = ({ pokemon, onClick, showStats = false, count = 1 }) => {
   return (
     <div 
       className={`
@@ -55,8 +56,16 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({ pokemon, onClick, show
         ))}
       </div>
       
+      {/* Count Badge */}
+      {count > 1 && (
+         <div className="absolute top-2 left-2 z-20 bg-gray-900/90 text-white text-xs font-black px-2 py-0.5 rounded-md border border-gray-600 shadow-lg flex items-center gap-1">
+            <Layers size={10} className="text-gray-400"/> x{count}
+         </div>
+      )}
+
+      {/* Shiny Icon */}
       {pokemon.isShiny && (
-         <div className="absolute top-2 left-2 z-10">
+         <div className={`absolute ${count > 1 ? 'top-9' : 'top-2'} left-2 z-10 transition-all`}>
             <Sparkles size={16} className="text-yellow-300 fill-yellow-300 animate-pulse" />
          </div>
       )}

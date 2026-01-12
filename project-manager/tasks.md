@@ -17,9 +17,10 @@ This document tracks all development tasks for the Pokémon Generator applicatio
 [x] Implement shiny they sell for double value
 [x] All rarity except legendary can fuse 
 [x] Implement a rating for the collection based on the number of pokemon and the rarity
+[x] Instead of displaying dupes make a little icon to show how many times the user get the pokemon
 
 # In progress
 
-[ ] Instead of displaying dupes make a little icon to show how many times the user get the pokemon
+[ ] Make a little animation when pulling with sparkles if there is a shiny
 
 # Planned
