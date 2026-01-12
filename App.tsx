@@ -4,7 +4,7 @@ import { GachaMachine } from './components/GachaMachine';
 import { PokemonCard } from './components/PokemonCard';
 import { Modal } from './components/Modal';
 import { PokemonDetail } from './components/PokemonDetail';
-import { Circle, Wallet, Trophy, Grid, LayoutGrid, Sparkles, ArrowUpDown } from 'lucide-react';
+import { Circle, Wallet, Trophy, Grid, LayoutGrid, Sparkles, ArrowUpDown, Trash2, AlertTriangle } from 'lucide-react';
 import { getResellValue } from './services/pokemonService';
 
 type SortOption = 'newest' | 'oldest' | 'id_asc' | 'id_desc' | 'rarity_desc' | 'rarity_asc' | 'type_asc';
@@ -16,6 +16,7 @@ const App: React.FC = () => {
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
   const [recentPulls, setRecentPulls] = useState<Pokemon[] | null>(null);
   const [showRecentModal, setShowRecentModal] = useState(false);
+  const [showReleaseConfirm, setShowReleaseConfirm] = useState(false);
   
   // Navigation & Filter State
   const [currentView, setCurrentView] = useState<'summon' | 'collection'>('summon');
@@ -70,6 +71,17 @@ const App: React.FC = () => {
     setSelectedPokemon(null);
   };
 
+  const handleReleaseAll = () => {
+    // Release all visible pokemon
+    const visibleIds = new Set(displayedInventory.map(p => p.id));
+    
+    const totalValue = displayedInventory.reduce((acc, p) => acc + getResellValue(p.rarity), 0);
+    
+    setCredits(prev => prev + totalValue);
+    setInventory(prev => prev.filter(p => !visibleIds.has(p.id)));
+    setShowReleaseConfirm(false);
+  };
+
   // Add free daily credits (mock)
   const addCredits = () => {
     setCredits(prev => prev + 500);
@@ -97,6 +109,8 @@ const App: React.FC = () => {
     });
   }, [inventory, filterRarity, sortOption]);
 
+  const releaseValue = displayedInventory.reduce((acc, p) => acc + getResellValue(p.rarity), 0);
+
   return (
     <div className="min-h-screen bg-gray-900 text-white pb-20">
       {/* Header */}
@@ -111,7 +125,6 @@ const App: React.FC = () => {
              </h1>
           </div>
           
-          {/* Mobile View Toggle - Visible on small screens inside header, or just part of the layout */}
           <div className="flex items-center gap-2 bg-gray-800/50 p-1 rounded-full border border-gray-700">
              <button 
                onClick={() => setCurrentView('summon')}
@@ -158,7 +171,7 @@ const App: React.FC = () => {
         ) : (
           /* Inventory Section */
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+            <div className="flex flex-col xl:flex-row items-start xl:items-end justify-between mb-8 gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-blue-600/20 rounded-xl">
                   <Trophy className="text-blue-400" size={24} />
@@ -169,7 +182,7 @@ const App: React.FC = () => {
                 </div>
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-start sm:items-center w-full xl:w-auto">
                 {/* Sort */}
                 <div className="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5">
                    <ArrowUpDown size={16} className="text-gray-400" />
@@ -204,6 +217,17 @@ const App: React.FC = () => {
                     </button>
                   ))}
                 </div>
+
+                {/* Release All Button */}
+                {displayedInventory.length > 0 && (
+                  <button 
+                    onClick={() => setShowReleaseConfirm(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-900/30 text-red-400 border border-red-900/50 hover:bg-red-900/50 hover:border-red-500 transition-colors text-xs font-bold uppercase"
+                  >
+                    <Trash2 size={14} />
+                    <span>Release Visible</span>
+                  </button>
+                )}
               </div>
             </div>
             
@@ -286,6 +310,47 @@ const App: React.FC = () => {
             Collect
           </button>
         </div>
+      </Modal>
+
+      {/* Release All Confirmation Modal */}
+      <Modal
+        isOpen={showReleaseConfirm}
+        onClose={() => setShowReleaseConfirm(false)}
+        title="CONFIRM RELEASE"
+      >
+         <div className="text-center p-4">
+            <div className="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+               <AlertTriangle size={32} />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Release {displayedInventory.length} Pokémon?</h3>
+            <p className="text-gray-400 text-sm mb-6">
+               You are about to release all currently visible Pokémon to the Professor. 
+               This action cannot be undone.
+            </p>
+            
+            <div className="bg-gray-800 p-4 rounded-xl mb-6 flex flex-col items-center">
+               <span className="text-gray-500 text-xs uppercase font-bold">Total Refund Value</span>
+               <div className="flex items-center gap-2 text-2xl font-bold text-green-400 mt-1">
+                  <span>+{releaseValue}</span>
+                  <Circle size={16} className="fill-yellow-400 text-yellow-400" />
+               </div>
+            </div>
+
+            <div className="flex gap-4 justify-center">
+               <button 
+                  onClick={() => setShowReleaseConfirm(false)}
+                  className="px-6 py-2 rounded-full bg-gray-700 hover:bg-gray-600 font-bold transition-colors"
+               >
+                  Cancel
+               </button>
+               <button 
+                  onClick={handleReleaseAll}
+                  className="px-6 py-2 rounded-full bg-red-600 hover:bg-red-500 font-bold transition-colors"
+               >
+                  Confirm Release
+               </button>
+            </div>
+         </div>
       </Modal>
 
     </div>

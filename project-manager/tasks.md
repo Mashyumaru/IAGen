@@ -11,13 +11,14 @@ This document tracks all development tasks for the Pokémon Generator applicatio
 [x] Implement a resell functionality, pokemon sell value is bound to the rarity
 [x] Implement a Collection tab
 [x] Implement differents sorts in the Collection tab (type, last obtained, ...)
+[x] Implement a release all button
 
 # In progress
 
 [ ] Update the rarity system so it takes more parameters 
-[ ] Implement a release all button 
 
 # Planned
 [ ] Implement a rating for the collection based on the number of pokemon and the rarity
 [ ] Implement a fuse tab where 3 common pokemon can be fuse to make a rare pokemon
 [ ] Implement shiny they sell for double value
+[ ] Instead of displaying dupes make a little icon to show how many times the user get the pokemon
