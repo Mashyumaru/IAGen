@@ -1,15 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Pokemon, ChatMessage } from '../types';
 import { generatePokemonPersonality, chatWithPokemon } from '../services/geminiService';
-import { Send, Sparkles, Bot, User, Loader2 } from 'lucide-react';
+import { getResellValue } from '../services/pokemonService';
+import { Send, Sparkles, Bot, User, Loader2, Trash2, Circle } from 'lucide-react';
 import { PokemonCard } from './PokemonCard';
 
 interface PokemonDetailProps {
   pokemon: Pokemon;
   onUpdatePokemon: (updated: Pokemon) => void;
+  onRelease: (pokemon: Pokemon) => void;
 }
 
-export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onUpdatePokemon }) => {
+export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onUpdatePokemon, onRelease }) => {
   const [activeTab, setActiveTab] = useState<'info' | 'chat'>('info');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -114,25 +116,40 @@ export const PokemonDetail: React.FC<PokemonDetailProps> = ({ pokemon, onUpdateP
         {/* Content */}
         <div className="flex-1 relative overflow-hidden flex flex-col">
           {activeTab === 'info' && (
-            <div className="p-6 space-y-4 overflow-auto">
-               <div>
-                 <h4 className="text-gray-400 text-xs uppercase mb-1">Obtained</h4>
-                 <p className="text-lg">{new Date(pokemon.obtainedAt).toLocaleDateString()} {new Date(pokemon.obtainedAt).toLocaleTimeString()}</p>
-               </div>
-               <div>
-                 <h4 className="text-gray-400 text-xs uppercase mb-1">Pokedex ID</h4>
-                 <p className="font-mono text-lg">#{String(pokemon.pokedexId).padStart(4, '0')}</p>
-               </div>
-               <div>
-                 <h4 className="text-gray-400 text-xs uppercase mb-1">Types</h4>
-                 <div className="flex gap-2">
-                   {pokemon.types.map(t => (
-                     <span key={t} className="px-3 py-1 bg-gray-700 rounded-full capitalize">{t}</span>
-                   ))}
+            <div className="p-6 h-full flex flex-col">
+               <div className="space-y-4 overflow-auto flex-1">
+                 <div>
+                   <h4 className="text-gray-400 text-xs uppercase mb-1">Obtained</h4>
+                   <p className="text-lg">{new Date(pokemon.obtainedAt).toLocaleDateString()} {new Date(pokemon.obtainedAt).toLocaleTimeString()}</p>
+                 </div>
+                 <div>
+                   <h4 className="text-gray-400 text-xs uppercase mb-1">Pokedex ID</h4>
+                   <p className="font-mono text-lg">#{String(pokemon.pokedexId).padStart(4, '0')}</p>
+                 </div>
+                 <div>
+                   <h4 className="text-gray-400 text-xs uppercase mb-1">Types</h4>
+                   <div className="flex gap-2">
+                     {pokemon.types.map(t => (
+                       <span key={t} className="px-3 py-1 bg-gray-700 rounded-full capitalize">{t}</span>
+                     ))}
+                   </div>
                  </div>
                </div>
-               <div className="pt-8 opacity-50 text-center">
-                 <p className="text-sm">Additional battle data corrupted or unavailable.</p>
+               
+               <div className="mt-6 pt-6 border-t border-gray-700">
+                 <button 
+                   onClick={() => onRelease(pokemon)}
+                   className="w-full py-3 bg-red-900/20 border border-red-900/50 hover:bg-red-900/40 hover:border-red-500 text-red-400 rounded-xl flex items-center justify-center gap-2 transition-all group"
+                 >
+                   <Trash2 size={18} className="group-hover:scale-110 transition-transform" />
+                   <span className="font-semibold">Transfer to Professor</span>
+                   <span className="bg-black/30 px-2 py-0.5 rounded-full text-sm flex items-center gap-1 ml-2">
+                      +{getResellValue(pokemon.rarity)} <Circle size={10} className="fill-yellow-400 text-yellow-400"/>
+                   </span>
+                 </button>
+                 <p className="text-center text-xs text-gray-500 mt-2">
+                   Transferred Pokémon cannot be recovered.
+                 </p>
                </div>
             </div>
           )}

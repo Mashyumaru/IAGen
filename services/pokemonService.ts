@@ -14,6 +14,17 @@ const determineRarity = (stats: PokemonStats): Rarity => {
   return Rarity.COMMON;
 };
 
+// Calculate resell value based on rarity
+export const getResellValue = (rarity: Rarity): number => {
+  switch (rarity) {
+    case Rarity.COMMON: return 10;
+    case Rarity.RARE: return 50;
+    case Rarity.EPIC: return 200;
+    case Rarity.LEGENDARY: return 1000;
+    default: return 0;
+  }
+};
+
 // Map PokeAPI response to our interface
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mapApiToPokemon = (data: any): Omit<Pokemon, 'id' | 'obtainedAt'> => {

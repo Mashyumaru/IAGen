@@ -5,6 +5,7 @@ import { PokemonCard } from './components/PokemonCard';
 import { Modal } from './components/Modal';
 import { PokemonDetail } from './components/PokemonDetail';
 import { Circle, Wallet, Trophy, Grid } from 'lucide-react';
+import { getResellValue } from './services/pokemonService';
 
 const App: React.FC = () => {
   // State
@@ -53,6 +54,13 @@ const App: React.FC = () => {
     if (selectedPokemon?.id === updated.id) {
       setSelectedPokemon(updated);
     }
+  };
+
+  const handleReleasePokemon = (pokemon: Pokemon) => {
+    const value = getResellValue(pokemon.rarity);
+    setCredits(prev => prev + value);
+    setInventory(prev => prev.filter(p => p.id !== pokemon.id));
+    setSelectedPokemon(null);
   };
 
   // Add free daily credits (mock)
@@ -149,6 +157,7 @@ const App: React.FC = () => {
           <PokemonDetail 
             pokemon={selectedPokemon} 
             onUpdatePokemon={handleUpdatePokemon}
+            onRelease={handleReleasePokemon}
           />
         )}
       </Modal>
