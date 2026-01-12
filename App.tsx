@@ -5,8 +5,8 @@ import { PokemonCard } from './components/PokemonCard';
 import { Modal } from './components/Modal';
 import { PokemonDetail } from './components/PokemonDetail';
 import { FusionChamber } from './components/FusionChamber';
-import { Circle, Wallet, Trophy, Grid, LayoutGrid, Sparkles, ArrowUpDown, Trash2, AlertTriangle, Atom } from 'lucide-react';
-import { getResellValue } from './services/pokemonService';
+import { Circle, Wallet, Trophy, Grid, LayoutGrid, Sparkles, ArrowUpDown, Trash2, AlertTriangle, Atom, Medal } from 'lucide-react';
+import { getResellValue, calculateCollectionScore, getTrainerRank } from './services/pokemonService';
 
 type SortOption = 'newest' | 'oldest' | 'id_asc' | 'id_desc' | 'rarity_desc' | 'rarity_asc' | 'type_asc';
 
@@ -121,6 +121,13 @@ const App: React.FC = () => {
 
   const releaseValue = displayedInventory.reduce((acc, p) => acc + getResellValue(p), 0);
 
+  // Stats Logic
+  const collectionScore = React.useMemo(() => calculateCollectionScore(inventory), [inventory]);
+  const trainerRank = getTrainerRank(collectionScore);
+  const rankProgress = trainerRank.nextScore === Infinity 
+    ? 100 
+    : Math.min(100, Math.max(0, ((collectionScore - trainerRank.minScore) / (trainerRank.nextScore - trainerRank.minScore)) * 100));
+
   return (
     <div className="min-h-screen bg-gray-900 text-white pb-20">
       {/* Header */}
@@ -192,7 +199,55 @@ const App: React.FC = () => {
         ) : (
           /* Inventory Section */
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col xl:flex-row items-start xl:items-end justify-between mb-8 gap-4">
+            
+            {/* Rank Dashboard */}
+            <div className="bg-gray-800/80 rounded-2xl p-6 mb-8 border border-gray-700 shadow-xl backdrop-blur-sm relative overflow-hidden group">
+               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12 translate-x-[-200%] group-hover:animate-shine pointer-events-none"></div>
+               <div className="flex flex-col md:flex-row items-center gap-6 md:gap-12">
+                  <div className="flex-1 text-center md:text-left">
+                     <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
+                        <span className="text-4xl">{trainerRank.icon}</span>
+                        <div>
+                           <h2 className={`text-3xl font-black uppercase tracking-tight ${trainerRank.color} drop-shadow-sm`}>
+                              {trainerRank.title}
+                           </h2>
+                           <p className="text-xs font-bold text-gray-500 tracking-widest uppercase">Trainer Rank</p>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="w-full md:w-1/2 lg:w-1/3">
+                     <div className="flex justify-between items-end mb-2">
+                        <span className="text-sm font-bold text-gray-400">Progress to Next Rank</span>
+                        <span className="font-mono font-bold text-white">{trainerRank.nextScore === Infinity ? 'MAX' : `${Math.floor(rankProgress)}%`}</span>
+                     </div>
+                     <div className="h-4 bg-gray-900 rounded-full overflow-hidden border border-gray-700 relative">
+                        <div 
+                           className={`h-full transition-all duration-1000 ease-out ${trainerRank.title === 'Legend' ? 'bg-gradient-to-r from-yellow-400 via-red-500 to-purple-500 animate-pulse' : 'bg-blue-500'}`} 
+                           style={{width: `${rankProgress}%`}}
+                        >
+                           <div className="absolute inset-0 bg-white/20 w-full h-full animate-[shimmer_2s_infinite]"></div>
+                        </div>
+                     </div>
+                     <div className="flex justify-between text-xs text-gray-500 mt-1 font-mono">
+                        <span>{collectionScore} pts</span>
+                        <span>{trainerRank.nextScore === Infinity ? '∞' : `${trainerRank.nextScore} pts`}</span>
+                     </div>
+                  </div>
+
+                  <div className="hidden md:block w-px h-16 bg-gray-700"></div>
+
+                  <div className="text-center md:text-right">
+                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Total Collection Value</p>
+                     <p className="text-2xl font-black text-white font-mono flex items-center justify-center md:justify-end gap-2">
+                        {collectionScore} <Medal size={20} className="text-yellow-500" />
+                     </p>
+                  </div>
+               </div>
+            </div>
+
+            {/* Collection Controls */}
+            <div className="flex flex-col xl:flex-row items-start xl:items-end justify-between mb-6 gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-blue-600/20 rounded-xl">
                   <Trophy className="text-blue-400" size={24} />

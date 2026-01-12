@@ -16,10 +16,10 @@ This document tracks all development tasks for the Pokémon Generator applicatio
 [x] Implement a fuse tab where 3 common pokemon can be fuse to make a rare pokemon
 [x] Implement shiny they sell for double value
 [x] All rarity except legendary can fuse 
+[x] Implement a rating for the collection based on the number of pokemon and the rarity
 
 # In progress
 
-[ ] Implement a rating for the collection based on the number of pokemon and the rarity
 [ ] Instead of displaying dupes make a little icon to show how many times the user get the pokemon
 
 # Planned

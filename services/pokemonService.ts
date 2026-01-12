@@ -56,6 +56,29 @@ export const getResellValue = (pokemon: Pokemon | Rarity): number => {
   return value;
 };
 
+// Calculate total collection score based on resell values
+export const calculateCollectionScore = (inventory: Pokemon[]): number => {
+  return inventory.reduce((acc, p) => acc + getResellValue(p), 0);
+};
+
+export interface TrainerRank {
+  title: string;
+  minScore: number;
+  nextScore: number;
+  color: string;
+  icon: string;
+}
+
+export const getTrainerRank = (score: number): TrainerRank => {
+  if (score >= 100000) return { title: 'Legend', minScore: 100000, nextScore: Infinity, color: 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-red-500 to-purple-500 font-black', icon: '👑' };
+  if (score >= 50000) return { title: 'Champion', minScore: 50000, nextScore: 100000, color: 'text-red-500', icon: '🏆' };
+  if (score >= 20000) return { title: 'Master', minScore: 20000, nextScore: 50000, color: 'text-purple-400', icon: '⚡' };
+  if (score >= 5000) return { title: 'Elite', minScore: 5000, nextScore: 20000, color: 'text-yellow-400', icon: '⭐' };
+  if (score >= 1000) return { title: 'Ace', minScore: 1000, nextScore: 5000, color: 'text-blue-400', icon: '💠' };
+  if (score >= 250) return { title: 'Rookie', minScore: 250, nextScore: 1000, color: 'text-green-400', icon: '🌱' };
+  return { title: 'Novice', minScore: 0, nextScore: 250, color: 'text-gray-400', icon: '🥚' };
+};
+
 // Map PokeAPI response to our interface
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mapApiToPokemon = (data: any): Omit<Pokemon, 'id' | 'obtainedAt'> => {
