@@ -4,8 +4,10 @@ import { GachaMachine } from './components/GachaMachine';
 import { PokemonCard } from './components/PokemonCard';
 import { Modal } from './components/Modal';
 import { PokemonDetail } from './components/PokemonDetail';
-import { Circle, Wallet, Trophy, Grid, LayoutGrid, Sparkles } from 'lucide-react';
+import { Circle, Wallet, Trophy, Grid, LayoutGrid, Sparkles, ArrowUpDown } from 'lucide-react';
 import { getResellValue } from './services/pokemonService';
+
+type SortOption = 'newest' | 'oldest' | 'id_asc' | 'id_desc' | 'rarity_desc' | 'rarity_asc' | 'type_asc';
 
 const App: React.FC = () => {
   // State
@@ -18,6 +20,7 @@ const App: React.FC = () => {
   // Navigation & Filter State
   const [currentView, setCurrentView] = useState<'summon' | 'collection'>('summon');
   const [filterRarity, setFilterRarity] = useState<Rarity | 'ALL'>('ALL');
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
 
   // Load from local storage
   useEffect(() => {
@@ -72,10 +75,27 @@ const App: React.FC = () => {
     setCredits(prev => prev + 500);
   };
 
-  // Filter logic
-  const filteredInventory = inventory.filter(p => 
-    filterRarity === 'ALL' ? true : p.rarity === filterRarity
-  );
+  // Filter & Sort logic
+  const displayedInventory = React.useMemo(() => {
+    // 1. Filter
+    const filtered = inventory.filter(p => 
+      filterRarity === 'ALL' ? true : p.rarity === filterRarity
+    );
+
+    // 2. Sort
+    return filtered.sort((a, b) => {
+      switch (sortOption) {
+        case 'newest': return b.obtainedAt - a.obtainedAt;
+        case 'oldest': return a.obtainedAt - b.obtainedAt;
+        case 'id_asc': return a.pokedexId - b.pokedexId;
+        case 'id_desc': return b.pokedexId - a.pokedexId;
+        case 'rarity_desc': return getResellValue(b.rarity) - getResellValue(a.rarity);
+        case 'rarity_asc': return getResellValue(a.rarity) - getResellValue(b.rarity);
+        case 'type_asc': return a.types[0].localeCompare(b.types[0]);
+        default: return 0;
+      }
+    });
+  }, [inventory, filterRarity, sortOption]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white pb-20">
@@ -138,7 +158,7 @@ const App: React.FC = () => {
         ) : (
           /* Inventory Section */
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-blue-600/20 rounded-xl">
                   <Trophy className="text-blue-400" size={24} />
@@ -149,25 +169,45 @@ const App: React.FC = () => {
                 </div>
               </div>
               
-              {/* Filters */}
-              <div className="flex flex-wrap gap-2">
-                {(['ALL', Rarity.COMMON, Rarity.RARE, Rarity.EPIC, Rarity.LEGENDARY] as const).map((r) => (
-                  <button 
-                    key={r}
-                    onClick={() => setFilterRarity(r)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors border ${
-                      filterRarity === r 
-                        ? 'bg-white text-black border-white' 
-                        : 'bg-gray-800/50 text-gray-400 border-gray-700 hover:border-gray-500'
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                {/* Sort */}
+                <div className="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5">
+                   <ArrowUpDown size={16} className="text-gray-400" />
+                   <select 
+                      value={sortOption} 
+                      onChange={(e) => setSortOption(e.target.value as SortOption)}
+                      className="bg-transparent text-white text-xs font-bold uppercase focus:outline-none cursor-pointer"
+                   >
+                      <option value="newest" className="bg-gray-800">Date (Newest)</option>
+                      <option value="oldest" className="bg-gray-800">Date (Oldest)</option>
+                      <option value="rarity_desc" className="bg-gray-800">Rarity (High-Low)</option>
+                      <option value="rarity_asc" className="bg-gray-800">Rarity (Low-High)</option>
+                      <option value="id_asc" className="bg-gray-800">Pokedex # (Asc)</option>
+                      <option value="id_desc" className="bg-gray-800">Pokedex # (Desc)</option>
+                      <option value="type_asc" className="bg-gray-800">Type (A-Z)</option>
+                   </select>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-wrap gap-2">
+                  {(['ALL', Rarity.COMMON, Rarity.RARE, Rarity.EPIC, Rarity.LEGENDARY] as const).map((r) => (
+                    <button 
+                      key={r}
+                      onClick={() => setFilterRarity(r)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors border ${
+                        filterRarity === r 
+                          ? 'bg-white text-black border-white' 
+                          : 'bg-gray-800/50 text-gray-400 border-gray-700 hover:border-gray-500'
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
             
-            {filteredInventory.length === 0 ? (
+            {displayedInventory.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 bg-gray-800/30 rounded-3xl border-2 border-dashed border-gray-700">
                  <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-600">
                     <LayoutGrid size={32} />
@@ -192,7 +232,7 @@ const App: React.FC = () => {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {filteredInventory.map((pokemon) => (
+                {displayedInventory.map((pokemon) => (
                   <PokemonCard 
                     key={pokemon.id} 
                     pokemon={pokemon} 
