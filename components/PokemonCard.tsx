@@ -43,27 +43,40 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({ pokemon, onClick, show
         relative group rounded-xl border-2 p-3 transition-all duration-300 cursor-pointer overflow-hidden
         hover:scale-105 hover:shadow-xl
         ${rarityColors[pokemon.rarity]}
+        ${pokemon.isShiny ? 'ring-2 ring-yellow-300 ring-offset-2 ring-offset-gray-900' : ''}
       `}
       onClick={() => onClick?.(pokemon)}
     >
-      <div className="absolute top-2 right-2 flex gap-1">
+      <div className="absolute top-2 right-2 flex gap-1 z-10">
         {pokemon.types.map((t) => (
           <span key={t} className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-bold tracking-wider ${typeColors[t] || 'bg-gray-500'}`}>
             {t}
           </span>
         ))}
       </div>
+      
+      {pokemon.isShiny && (
+         <div className="absolute top-2 left-2 z-10">
+            <Sparkles size={16} className="text-yellow-300 fill-yellow-300 animate-pulse" />
+         </div>
+      )}
 
-      <div className="mt-4 flex justify-center">
+      <div className="mt-4 flex justify-center relative">
         <img 
           src={pokemon.image} 
           alt={pokemon.name} 
-          className="w-32 h-32 object-contain drop-shadow-md group-hover:drop-shadow-2xl transition-all"
+          className="w-32 h-32 object-contain drop-shadow-md group-hover:drop-shadow-2xl transition-all relative z-0"
         />
+        {pokemon.isShiny && (
+           <div className="absolute inset-0 bg-yellow-400/10 blur-xl rounded-full scale-75 animate-pulse -z-10"></div>
+        )}
       </div>
 
       <div className="mt-3 text-center">
-        <h3 className="capitalize font-bold text-lg text-white truncate">{pokemon.name}</h3>
+        <h3 className="capitalize font-bold text-lg text-white truncate flex items-center justify-center gap-1">
+           {pokemon.name}
+           {pokemon.isShiny && <span className="text-yellow-400">★</span>}
+        </h3>
         <p className={`text-xs font-semibold uppercase tracking-widest opacity-80 ${
           pokemon.rarity === Rarity.LEGENDARY ? 'text-yellow-400' :
           pokemon.rarity === Rarity.EPIC ? 'text-purple-400' :
@@ -84,11 +97,6 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({ pokemon, onClick, show
       
       {pokemon.rarity === Rarity.LEGENDARY && (
         <div className="absolute inset-0 bg-gradient-to-tr from-yellow-500/10 to-transparent pointer-events-none" />
-      )}
-      
-      {/* Optional shiny sparkle if desired, simplified for now */}
-      {pokemon.rarity === Rarity.LEGENDARY && (
-        <Sparkles className="absolute bottom-2 right-2 text-yellow-400 animate-pulse" size={16} />
       )}
     </div>
   );

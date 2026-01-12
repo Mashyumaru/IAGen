@@ -4,7 +4,8 @@ import { GachaMachine } from './components/GachaMachine';
 import { PokemonCard } from './components/PokemonCard';
 import { Modal } from './components/Modal';
 import { PokemonDetail } from './components/PokemonDetail';
-import { Circle, Wallet, Trophy, Grid, LayoutGrid, Sparkles, ArrowUpDown, Trash2, AlertTriangle } from 'lucide-react';
+import { FusionChamber } from './components/FusionChamber';
+import { Circle, Wallet, Trophy, Grid, LayoutGrid, Sparkles, ArrowUpDown, Trash2, AlertTriangle, Atom } from 'lucide-react';
 import { getResellValue } from './services/pokemonService';
 
 type SortOption = 'newest' | 'oldest' | 'id_asc' | 'id_desc' | 'rarity_desc' | 'rarity_asc' | 'type_asc';
@@ -17,9 +18,10 @@ const App: React.FC = () => {
   const [recentPulls, setRecentPulls] = useState<Pokemon[] | null>(null);
   const [showRecentModal, setShowRecentModal] = useState(false);
   const [showReleaseConfirm, setShowReleaseConfirm] = useState(false);
+  const [fusionResult, setFusionResult] = useState<Pokemon | null>(null);
   
   // Navigation & Filter State
-  const [currentView, setCurrentView] = useState<'summon' | 'collection'>('summon');
+  const [currentView, setCurrentView] = useState<'summon' | 'collection' | 'fusion'>('summon');
   const [filterRarity, setFilterRarity] = useState<Rarity | 'ALL'>('ALL');
   const [sortOption, setSortOption] = useState<SortOption>('newest');
 
@@ -65,7 +67,7 @@ const App: React.FC = () => {
   };
 
   const handleReleasePokemon = (pokemon: Pokemon) => {
-    const value = getResellValue(pokemon.rarity);
+    const value = getResellValue(pokemon);
     setCredits(prev => prev + value);
     setInventory(prev => prev.filter(p => p.id !== pokemon.id));
     setSelectedPokemon(null);
@@ -75,11 +77,19 @@ const App: React.FC = () => {
     // Release all visible pokemon
     const visibleIds = new Set(displayedInventory.map(p => p.id));
     
-    const totalValue = displayedInventory.reduce((acc, p) => acc + getResellValue(p.rarity), 0);
+    const totalValue = displayedInventory.reduce((acc, p) => acc + getResellValue(p), 0);
     
     setCredits(prev => prev + totalValue);
     setInventory(prev => prev.filter(p => !visibleIds.has(p.id)));
     setShowReleaseConfirm(false);
+  };
+
+  const handleFusion = (consumedIds: string[], result: Pokemon) => {
+    setInventory(prev => {
+      const remaining = prev.filter(p => !consumedIds.includes(p.id));
+      return [result, ...remaining];
+    });
+    setFusionResult(result);
   };
 
   // Add free daily credits (mock)
@@ -101,15 +111,15 @@ const App: React.FC = () => {
         case 'oldest': return a.obtainedAt - b.obtainedAt;
         case 'id_asc': return a.pokedexId - b.pokedexId;
         case 'id_desc': return b.pokedexId - a.pokedexId;
-        case 'rarity_desc': return getResellValue(b.rarity) - getResellValue(a.rarity);
-        case 'rarity_asc': return getResellValue(a.rarity) - getResellValue(b.rarity);
+        case 'rarity_desc': return getResellValue(b) - getResellValue(a);
+        case 'rarity_asc': return getResellValue(a) - getResellValue(b);
         case 'type_asc': return a.types[0].localeCompare(b.types[0]);
         default: return 0;
       }
     });
   }, [inventory, filterRarity, sortOption]);
 
-  const releaseValue = displayedInventory.reduce((acc, p) => acc + getResellValue(p.rarity), 0);
+  const releaseValue = displayedInventory.reduce((acc, p) => acc + getResellValue(p), 0);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white pb-20">
@@ -128,15 +138,21 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2 bg-gray-800/50 p-1 rounded-full border border-gray-700">
              <button 
                onClick={() => setCurrentView('summon')}
-               className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all flex items-center gap-2 ${currentView === 'summon' ? 'bg-gray-700 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}
+               className={`px-3 py-1.5 md:px-4 rounded-full text-xs font-bold uppercase transition-all flex items-center gap-2 ${currentView === 'summon' ? 'bg-gray-700 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}
              >
                <Sparkles size={14} /> <span className="hidden sm:inline">Summon</span>
              </button>
              <button 
                onClick={() => setCurrentView('collection')}
-               className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all flex items-center gap-2 ${currentView === 'collection' ? 'bg-gray-700 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}
+               className={`px-3 py-1.5 md:px-4 rounded-full text-xs font-bold uppercase transition-all flex items-center gap-2 ${currentView === 'collection' ? 'bg-gray-700 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}
              >
                <Grid size={14} /> <span className="hidden sm:inline">Collection</span>
+             </button>
+             <button 
+               onClick={() => setCurrentView('fusion')}
+               className={`px-3 py-1.5 md:px-4 rounded-full text-xs font-bold uppercase transition-all flex items-center gap-2 ${currentView === 'fusion' ? 'bg-gray-700 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}
+             >
+               <Atom size={14} /> <span className="hidden sm:inline">Fusion</span>
              </button>
           </div>
 
@@ -168,6 +184,11 @@ const App: React.FC = () => {
               onPullComplete={handlePullComplete} 
             />
           </section>
+        ) : currentView === 'fusion' ? (
+           /* Fusion Section */
+           <section>
+              <FusionChamber inventory={inventory} onFuse={handleFusion} />
+           </section>
         ) : (
           /* Inventory Section */
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -310,6 +331,29 @@ const App: React.FC = () => {
             Collect
           </button>
         </div>
+      </Modal>
+      
+      {/* Fusion Result Modal */}
+      <Modal
+         isOpen={!!fusionResult}
+         onClose={() => setFusionResult(null)}
+         title="FUSION SUCCESSFUL"
+      >
+         <div className="flex flex-col items-center p-8">
+            <div className="w-64 mb-8 animate-in zoom-in duration-500">
+               {fusionResult && <PokemonCard pokemon={fusionResult} showStats />}
+            </div>
+            <h3 className="text-2xl font-bold mb-2">New Companion Created!</h3>
+            <p className="text-gray-400 text-center max-w-md mb-6">
+               Your fusion experiment was a success. {fusionResult?.name} has joined your collection.
+            </p>
+            <button 
+               onClick={() => setFusionResult(null)}
+               className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-8 rounded-full"
+            >
+               Awesome
+            </button>
+         </div>
       </Modal>
 
       {/* Release All Confirmation Modal */}
