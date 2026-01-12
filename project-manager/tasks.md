@@ -18,9 +18,9 @@ This document tracks all development tasks for the Pokémon Generator applicatio
 [x] All rarity except legendary can fuse 
 [x] Implement a rating for the collection based on the number of pokemon and the rarity
 [x] Instead of displaying dupes make a little icon to show how many times the user get the pokemon
+[x] Make a little animation when pulling with sparkles if there is a shiny
 
 # In progress
 
-[ ] Make a little animation when pulling with sparkles if there is a shiny
 
 # Planned

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pokemon } from '../types';
 import { fetchBatchPokemon } from '../services/pokemonService';
-import { Circle, Loader2 } from 'lucide-react';
+import { Circle, Loader2, Sparkles } from 'lucide-react';
 
 interface GachaMachineProps {
   onPullComplete: (newPokemon: Pokemon[]) => void;
@@ -11,7 +11,7 @@ interface GachaMachineProps {
 
 export const GachaMachine: React.FC<GachaMachineProps> = ({ onPullComplete, credits, onSpendCredits }) => {
   const [isPulling, setIsPulling] = useState(false);
-  const [animationState, setAnimationState] = useState<'idle' | 'shaking' | 'opening'>('idle');
+  const [animationState, setAnimationState] = useState<'idle' | 'shaking' | 'shiny' | 'opening'>('idle');
 
   const handlePull = async (amount: number) => {
     if (credits < amount * 100 || isPulling) return;
@@ -26,6 +26,13 @@ export const GachaMachine: React.FC<GachaMachineProps> = ({ onPullComplete, cred
       const dataPromise = fetchBatchPokemon(amount);
       
       const [newMons] = await Promise.all([dataPromise, minAnimationTime]);
+      const hasShiny = newMons.some(p => p.isShiny);
+
+      if (hasShiny) {
+         setAnimationState('shiny');
+         // Play shiny animation 
+         await new Promise(resolve => setTimeout(resolve, 1500));
+      }
       
       setAnimationState('opening');
       setTimeout(() => {
@@ -47,8 +54,30 @@ export const GachaMachine: React.FC<GachaMachineProps> = ({ onPullComplete, cred
       <div className="aspect-square bg-gray-900 rounded-2xl mb-6 relative flex items-center justify-center overflow-hidden group">
         
         {/* Background Effects */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900 via-gray-900 to-black opacity-50"></div>
+        <div className={`absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] opacity-50 transition-colors duration-1000 ${
+           animationState === 'shiny' ? 'from-yellow-500 via-orange-900 to-black' : 'from-blue-900 via-gray-900 to-black'
+        }`}></div>
         
+        {/* Shiny Sparkles Overlay */}
+        {animationState === 'shiny' && (
+           <div className="absolute inset-0 pointer-events-none z-10">
+              {[...Array(6)].map((_, i) => (
+                 <Sparkles 
+                    key={i}
+                    size={32 + Math.random() * 24} 
+                    className="absolute text-yellow-300 animate-bounce"
+                    style={{
+                       top: `${20 + Math.random() * 60}%`,
+                       left: `${20 + Math.random() * 60}%`,
+                       animationDelay: `${Math.random() * 0.5}s`,
+                       animationDuration: '1s'
+                    }}
+                 />
+              ))}
+              <div className="absolute inset-0 bg-yellow-500/20 animate-pulse"></div>
+           </div>
+        )}
+
         {/* The Pokeball */}
         <div className={`relative transition-transform duration-500 ${animationState === 'shaking' ? 'animate-shake' : ''}`}>
           {animationState === 'opening' ? (
@@ -56,7 +85,13 @@ export const GachaMachine: React.FC<GachaMachineProps> = ({ onPullComplete, cred
                <div className="w-full h-full bg-white rounded-full opacity-75"></div>
              </div>
           ) : (
-            <div className={`w-48 h-48 rounded-full border-8 border-gray-800 relative shadow-2xl overflow-hidden pokeball-gradient transform transition-transform ${isPulling ? 'scale-110' : 'group-hover:scale-105'}`}>
+            <div 
+               className={`
+                  w-48 h-48 rounded-full border-8 border-gray-800 relative shadow-2xl overflow-hidden pokeball-gradient transform transition-transform 
+                  ${isPulling ? 'scale-110' : 'group-hover:scale-105'}
+                  ${animationState === 'shiny' ? 'shadow-[0_0_50px_rgba(234,179,8,0.6)] ring-4 ring-yellow-400 ring-offset-4 ring-offset-black' : ''}
+               `}
+            >
               {/* Top Half (Red via gradient) */}
               
               {/* Center Line */}
@@ -64,7 +99,10 @@ export const GachaMachine: React.FC<GachaMachineProps> = ({ onPullComplete, cred
               
               {/* Center Button */}
               <div className="absolute top-1/2 left-1/2 w-16 h-16 bg-white border-8 border-gray-800 rounded-full -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
-                 <div className={`w-10 h-10 border-4 border-gray-300 rounded-full ${isPulling ? 'bg-red-500 animate-pulse' : 'bg-white'}`}></div>
+                 <div className={`w-10 h-10 border-4 border-gray-300 rounded-full transition-colors duration-300 ${
+                    animationState === 'shiny' ? 'bg-yellow-400 animate-ping' :
+                    isPulling ? 'bg-red-500 animate-pulse' : 'bg-white'
+                 }`}></div>
               </div>
 
               {/* Bottom Half (White) - achieved by masking or just background color if we used divs, but gradient handles top */}
@@ -99,7 +137,7 @@ export const GachaMachine: React.FC<GachaMachineProps> = ({ onPullComplete, cred
         </button>
       </div>
 
-      {isPulling && (
+      {isPulling && animationState !== 'shiny' && (
          <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-sm">
            <div className="text-center">
              <Loader2 className="animate-spin text-white mb-2 mx-auto" size={48} />
